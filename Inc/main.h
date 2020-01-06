@@ -59,6 +59,15 @@ void Error_Handler(void);
 
 /* Private defines -----------------------------------------------------------*/
 /* USER CODE BEGIN Private defines */
+extern volatile uint16_t event;
+extern SPI_HandleTypeDef hspi1;
+
+#define TRUE	1
+#define FALSE	0
+
+#define EVNT_SECOND      0x01
+#define EVNT_UART_RX     0x02
+#define EVNT_ENABLED     0x80
 
 /* USER CODE END Private defines */
 

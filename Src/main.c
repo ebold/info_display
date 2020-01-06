@@ -19,8 +19,21 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
 
+#include "main.h"
+#include "display.h"
+#include "led_board.h"
+#include "string.h"
+/**
+ * External LED module control pins, OE = Output Enable, LDO = Load
+ * Arduino connector pins D7, D8 (PA.8, PA.9) are configured as GPIO and mapped to OE, LDO respectively.
+ *
+ * External LED module SPI interface, SCK, SDO, SDI
+ * Arduino connector pins D13, D11, D12 (PA.5, PA.7, PA.6) are configured as SPI (SCK, MOSI, MISO) and
+ * mapped to SCK, SDO, SDI signals.
+ *
+ * Connection diagram: Linux host <-- USB --> STM32-Nucleo <-- SPI/GPIO --> LED board
+ */
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -47,7 +60,13 @@ UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+volatile uint16_t event = 0;
+uint8_t rx_byte[MAX_CHAR]; // received byte buffer
+uint8_t rx_cnt = 0;
+uint8_t text[MAX_CHAR] = "Hello"; // info display buffer
+uint8_t newline[2] = "\n\r";
 
+uint16_t sec_cnt = 0;   // 10-sec counter
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -57,7 +76,7 @@ static void MX_SPI1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
-
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -110,6 +129,53 @@ int main(void)
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
+
+	initLedBoard();
+	initDisplay();
+	displayText(DISP_MODE_STATIC, text, 0, MAX_CHAR);
+	refreshLedBlocks = TRUE;	// enable to display data in text[]
+	event |= EVNT_ENABLED;
+
+	HAL_UART_Transmit(&huart2, text, sizeof(text), 0xFFFF); // print text[]
+	HAL_UART_Transmit(&huart2, newline, sizeof(newline), 0xFFFF);
+
+	HAL_UART_Receive_IT(&huart2, rx_byte, sizeof(rx_byte));
+		if (event & EVNT_ENABLED)
+		{
+			if (event & EVNT_SECOND) {
+				event &= ~EVNT_SECOND;
+				++sec_cnt;
+
+				if (sec_cnt == 30) {
+					HAL_UART_Transmit(&huart2, text, sizeof(text), 0xFFFF);
+					HAL_UART_Transmit(&huart2, newline, sizeof(newline), 0xFFFF);
+					sec_cnt = 0;
+				}
+			}
+			else if (event & EVNT_UART_RX)
+			{
+				uint16_t size = sizeof(rx_byte);
+
+				if (size < MAX_CHAR) {
+					for (uint8_t i = 0; i < size; ++i) {
+						if (rx_cnt == MAX_CHAR)
+							rx_cnt = 0;
+						*(text + rx_cnt) = *(rx_byte + i);
+						++rx_cnt;
+					}
+				}
+				else {
+					memcpy(text, rx_byte, size);
+				}
+
+				HAL_UART_Transmit(&huart2, text, sizeof(text), 0xFFFF);
+				HAL_UART_Transmit(&huart2, newline, sizeof(newline), 0xFFFF);
+
+				displayText(DISP_MODE_STATIC, text, 0, MAX_CHAR);
+
+				event &= ~EVNT_UART_RX;
+			}
+		}
 }
 
 /**
@@ -164,12 +230,10 @@ static void MX_SPI1_Init(void)
   /* SPI1 parameter configuration*/
   hspi1.Instance = SPI1;
   hspi1.Init.Mode = SPI_MODE_MASTER;
-  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
   hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -181,6 +245,8 @@ static void MX_SPI1_Init(void)
   /* USER CODE BEGIN SPI1_Init 2 */
 
   /* USER CODE END SPI1_Init 2 */
+	hspi1.Init.Direction = SPI_DIRECTION_1LINE;
+	hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8; // 1/8 = 1MHz
 
 }
 
@@ -280,10 +346,24 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+
+	/*Configure GPIO pin : PA8, PA9 */
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8 | GPIO_PIN_9, GPIO_PIN_RESET);
+	GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_9;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if (huart->Instance == USART2) {
+		HAL_UART_Receive_IT(&huart2, rx_byte, sizeof(rx_byte)); // receive data, reset interrupt
+		event |= EVNT_UART_RX;
+	}
+}
 /* USER CODE END 4 */
 
 /**
