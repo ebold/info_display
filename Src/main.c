@@ -142,8 +142,7 @@ int main(void)
 				++sec_cnt;
 
 				if (sec_cnt == 30) {
-					HAL_UART_Transmit(&huart2, text, sizeof(text), 0xFFFF);
-					HAL_UART_Transmit(&huart2, newline, sizeof(newline), 0xFFFF);
+					//do something
 					sec_cnt = 0;
 				}
 			}
@@ -163,6 +162,7 @@ int main(void)
 					memcpy(text, rx_byte, size);
 				}
 
+				// echo text[] via UART
 				HAL_UART_Transmit(&huart2, text, sizeof(text), 0xFFFF);
 				HAL_UART_Transmit(&huart2, newline, sizeof(newline), 0xFFFF);
 
