@@ -1,0 +1,28 @@
+1. Beaglebone resets STLink on attempts to use its virtual serial port
+(aka virtual comport)
+
+A device /dev/ttyACM0 appears in Beaglebone when the Nucleo board is connected
+to the host USB port of Beaglebone:
+   Beaglebone (host-USB) <--- USB cable ---> Nucleo (STM32F103RB, USB-powered)
+
+But STLink is reset by host after configuring the STLink device (stty -F /dev/ttyACM0)
+or sending bytes to it (with the default configuration of 9600 baud). It happens
+around 30 seconds after any attempt or access.
+The data transmission has been done from Beaglebone to the Nucleo board usually
+using the shell 'echo' command:
+$ echo "1" > /dev/ttyACM0
+
+The Linux image 'Debian 9.9 2019-08-03 4GB SD IoT' has been downloaded from [1]
+and installed in Beagleboned.
+
+All attempts given below were failed:
+- use udev rule in '/etc/udev/rules.d/49-stlinkv2-1.rules', which is provided in [2]
+- re-configure the settings of '/dev/ttyACM0' using 'stty' [3]
+- use of minicom (with 115200 baud, no HW flow control)
+- apply external 5V supply directly to the Nucleo board as specified in [4]
+- powering Beaglebone either by 5V plug or by the mini-USB port
+
+[1] https://beagleboard.org/latest-images
+[2] stsw-link007 tool for STLink firmware upgrade
+[3] stty -F /dev/ttyACM0 115200 raw -echo
+[4] UM1724.pdf, 6.3.4 External power supply output
