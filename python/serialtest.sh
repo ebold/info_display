@@ -10,7 +10,7 @@
 # Usage: specify this script in an udev rule with attribute RUN+="serialtest.sh"
 # Example: refer to https://github.com/ebold/info_display/python/49-stlinkv2-1.rules
 
-lock_file='/tmp/nucleo.lock'
+lock_file='/tmp/nucleo'
 lock_retry=0
 
 # create and lock a file, return 0 if fails
