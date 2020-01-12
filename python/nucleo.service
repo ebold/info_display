@@ -1,0 +1,17 @@
+# Launch an user script if a device /dev/ttyACM0 is detected by udev.
+
+# Since starting long-running processes from udev is not recommended,
+# starting an user script is done by systemd as a service.
+
+# Usage: copy this file into '/etc/systemd/system/' directory.
+
+[Unit]
+Description=Serial communication with the STM32 Nucleo/STLink via USB
+ConditionPathExists=/dev/ttyACM0
+
+
+[Service]
+ExecStart=/home/ebold/info_display/python/serialtest.sh
+
+[Install]
+#WantedBy=multi-user.target
