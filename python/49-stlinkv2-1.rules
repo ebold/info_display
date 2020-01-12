@@ -2,6 +2,8 @@
 
 # On adding the STLink CDC ACM device this rule sets the read and write permissions
 # to it (/dev/ttyACM0) and inform systemd to launch an user script 'serialtest.sh'.
+# For udev limitation refer to:
+# https://unix.stackexchange.com/questions/436666/run-service-after-ttyusb0-becomes-available
 
 # Usage: copy this file into the '/etc/udev/rules.d' directory
 
