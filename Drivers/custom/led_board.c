@@ -20,7 +20,7 @@ void initLedBoard(void)
 {
 	LED_OFF;                            // turn off all LED blocks
 
-	cntTicks[TICK_10MS] = CNT_10;       // reset tick counters
+	cntTicks[TICK_100MS] = CNT_100;     // reset tick counters
 	cntTicks[TICK_1000MS] = CNT_1000;
 
 	refreshLedBlocks = FALSE;           // reset LED block refresh flag
@@ -33,6 +33,12 @@ void initLedBoard(void)
  */
 void HAL_SYSTICK_Callback(void)
 {
+	cntTicks[TICK_100MS]--;
+	if (!(cntTicks[TICK_100MS])) {
+		cntTicks[TICK_100MS] = CNT_100;
+		event |= EVNT_100MS;        // 100 ms are over
+	}
+
 	cntTicks[TICK_1000MS]--;
 	if (!(cntTicks[TICK_1000MS])) {
 		cntTicks[TICK_1000MS] = CNT_1000;

@@ -67,6 +67,9 @@ extern SPI_HandleTypeDef hspi1;
 
 #define EVNT_SECOND      0x01
 #define EVNT_UART_RX     0x02
+#define EVNT_100MS       0x04
+#define EVNT_DATETIME    0x10
+#define EVNT_BLINK       0x20
 #define EVNT_ENABLED     0x80
 
 /* USER CODE END Private defines */

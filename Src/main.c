@@ -23,6 +23,7 @@
 #include "main.h"
 #include "display.h"
 #include "led_board.h"
+#include "datetime.h"
 #include "string.h"
 /**
  * External LED module control pins, OE = Output Enable, LDO = Load
@@ -46,6 +47,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define ASCII_DIGIT  0x30
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -75,6 +77,8 @@ static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
+void displayDateTime(uint8_t *pText);
+void blinkChar(uint8_t *pText, uint8_t pos, uint8_t blink);
 /* USER CODE BEGIN PFP */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
 /* USER CODE END PFP */
@@ -122,7 +126,7 @@ int main(void)
 	initDisplay();
 	displayText(DISP_MODE_STATIC, text, 0, MAX_CHAR);
 	refreshLedBlocks = TRUE;	// enable to display data in text[]
-	event |= EVNT_ENABLED;
+	event |= EVNT_ENABLED | EVNT_DATETIME;
 
 	HAL_UART_Transmit(&huart2, text, sizeof(text), 0xFFFF); // print text[]
 	HAL_UART_Transmit(&huart2, newline, sizeof(newline), 0xFFFF);
@@ -145,6 +149,20 @@ int main(void)
 					//do something
 					sec_cnt = 0;
 				}
+			}
+
+			if (event & EVNT_100MS) {
+				event &= ~EVNT_100MS;
+				tickDateTime();  // tick local datetime periodically
+			}
+
+			if (event & EVNT_BLINK) {
+				event &= ~EVNT_BLINK;
+				blinkChar(text, 2, ':'); // toggle ':' in datetime
+			}
+			else if (event & EVNT_DATETIME) {
+				event &= ~EVNT_DATETIME;
+				displayDateTime(text);  // display datetime
 			}
 			else if (event & EVNT_UART_RX)
 			{
@@ -373,6 +391,51 @@ void Error_Handler(void)
 	/* User can add his own implementation to report the HAL error return state */
 
 	/* USER CODE END Error_Handler_Debug */
+}
+
+/**
+ * @breif	Write datetime value to a dedicated display buffer
+ */
+void displayDateTime(uint8_t *pText)
+{
+	uint8_t i = s_mydatetime.hour / 10;
+	if (i)
+		*pText = i | ASCII_DIGIT;
+	else
+		*pText = ' ';
+
+	*(pText + 1) = (s_mydatetime.hour % 10) | ASCII_DIGIT;
+	i = s_mydatetime.minute / 10;
+	if (i)
+	{
+		*(pText + 3) = i | ASCII_DIGIT;
+		*(pText + 4) = (s_mydatetime.minute % 10) | ASCII_DIGIT;
+	}
+	else
+	{
+		*(pText + 3) = (s_mydatetime.minute % 10) | ASCII_DIGIT;
+		*(pText + 4) = ' ';
+	}
+	displayText(DISP_MODE_STATIC, pText, 0, 5);
+}
+
+/**
+ * @breif	Blink a character in a text buffer
+ */
+void blinkChar(uint8_t *pText, uint8_t pos, uint8_t blink)
+{
+	uint8_t ch = *(pText + pos);
+
+	if (ch == blink)
+	{
+		*(pText + pos) = ' ';
+	}
+	else
+	{
+		*(pText + pos) = blink;
+	}
+
+	displayText(DISP_MODE_STATIC, pText, pos, 1);
 }
 
 #ifdef  USE_FULL_ASSERT

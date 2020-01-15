@@ -47,11 +47,11 @@
 #define MAX_LED_COL   10 // columns of an LED block
 
 #define CNT_1000      1000 // tick counts
-#define CNT_10        10
+#define CNT_100       100
 
 enum
 {
-	TICK_10MS = 0,  // 10ms ticks
+	TICK_100MS = 0, // 100ms ticks
 	TICK_1000MS,    // 1000ms ticks
 	N_TIMER_MS
 } Timers_ms;
