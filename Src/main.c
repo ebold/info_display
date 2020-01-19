@@ -47,6 +47,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define LEN_HMS      8    // length of HH:MM:SS
 #define ASCII_DIGIT  0x30
 /* USER CODE END PD */
 
@@ -63,7 +64,7 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 volatile uint16_t event = 0;
-uint8_t rx_byte[MAX_CHAR]; // received byte buffer
+uint8_t rx_byte[LEN_HMS]; // received byte buffer
 uint8_t rx_cnt = 0;
 uint8_t text[MAX_CHAR] = "Hello"; // info display buffer
 uint8_t newline[2] = "\n\r";
@@ -77,8 +78,10 @@ static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
-void displayDateTime(uint8_t *pText);
-void blinkChar(uint8_t *pText, uint8_t pos, uint8_t blink);
+static void displayDateTime(uint8_t *pText);
+static void blinkChar(uint8_t *pText, uint8_t pos, uint8_t blink);
+static void syncDateTime(struct mydatetime *loc_time, uint8_t *rx_buf);
+static void echoToSender(void);
 /* USER CODE BEGIN PFP */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
 /* USER CODE END PFP */
@@ -166,27 +169,10 @@ int main(void)
 			}
 			else if (event & EVNT_UART_RX)
 			{
-				uint16_t size = sizeof(rx_byte);
-
-				if (size < MAX_CHAR) {
-					for (uint8_t i = 0; i < size; ++i) {
-						if (rx_cnt == MAX_CHAR)
-							rx_cnt = 0;
-						*(text + rx_cnt) = *(rx_byte + i);
-						++rx_cnt;
-					}
-				}
-				else {
-					memcpy(text, rx_byte, size);
-				}
-
-				// echo text[] via UART
-				HAL_UART_Transmit(&huart2, text, sizeof(text), 0xFFFF);
-				HAL_UART_Transmit(&huart2, newline, sizeof(newline), 0xFFFF);
-
-				displayText(DISP_MODE_STATIC, text, 0, MAX_CHAR);
-
 				event &= ~EVNT_UART_RX;
+				syncDateTime(&s_mydatetime, rx_byte); // synchronize local datetime
+
+				echoToSender(); // send the received data back to sender
 			}
 		}
 		/* USER CODE BEGIN 3 */
@@ -394,6 +380,31 @@ void Error_Handler(void)
 }
 
 /**
+ * @brief	Synchronize local datetime with the RX data
+ * @param	loc_time - variable for local datetime, rx_buf - RX data buffer
+ * @retval	None
+ */
+void syncDateTime(struct mydatetime *loc_time, uint8_t *rx_buf)
+{
+	uint8_t digit_10 = *(rx_buf);
+	digit_10 &= ~ASCII_DIGIT;
+	uint8_t digit_1 = *(rx_buf + 1);
+	digit_1 &= ~ASCII_DIGIT;
+	loc_time->hour = digit_10 * 10 + digit_1;
+	digit_10 = *(rx_buf + 3);
+	digit_10 &= ~ASCII_DIGIT;
+	digit_1 = *(rx_buf + 4);
+	digit_1 &= ~ASCII_DIGIT;
+	loc_time->minute = digit_10 * 10 + digit_1;
+	digit_10 = *(rx_buf + 6);
+	digit_10 &= ~ASCII_DIGIT;
+	digit_1 = *(rx_buf + 7);
+	digit_1 &= ~ASCII_DIGIT;
+	loc_time->second = digit_10 * 10 + digit_1;
+	event |= EVNT_DATETIME;
+}
+
+/**
  * @breif	Write datetime value to a dedicated display buffer
  */
 void displayDateTime(uint8_t *pText)
@@ -436,6 +447,15 @@ void blinkChar(uint8_t *pText, uint8_t pos, uint8_t blink)
 	}
 
 	displayText(DISP_MODE_STATIC, pText, pos, 1);
+}
+
+/**
+ * @brief	Send the received data back to a sender
+ */
+void echoToSender(void)
+{
+	HAL_UART_Transmit(&huart2, rx_byte, sizeof(rx_byte), 0xFFFF);
+	HAL_UART_Transmit(&huart2, newline, sizeof(newline), 0xFFFF);
 }
 
 #ifdef  USE_FULL_ASSERT
