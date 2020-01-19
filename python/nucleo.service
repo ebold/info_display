@@ -11,7 +11,7 @@ ConditionPathExists=/dev/ttyACM0
 
 
 [Service]
-ExecStart=/home/ebold/info_display/python/serialtest.sh
+ExecStart=/usr/local/bin/serialcomm_nucleo.sh
 
 [Install]
 #WantedBy=multi-user.target
