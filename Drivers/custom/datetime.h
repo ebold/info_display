@@ -19,6 +19,10 @@ struct mydatetime {
 };
 extern struct mydatetime s_mydatetime;
 
+void setTime(uint8_t button, uint8_t *buf); // set/adjust datetime
+uint8_t isSetTimeActive();  // check if setting datetime in progress
 void tickDateTime(void);    // tick datetime
+void adjustMinute(void); // adjust minute
+void adjustHour(void);   // adjust hour
 
 #endif /* DATETIME_H_ */

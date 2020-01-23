@@ -46,16 +46,6 @@
 #define MAX_LED_BLK   3  // number of LED blocks on the LED display (1 block = 8x10 LEDs)
 #define MAX_LED_COL   10 // columns of an LED block
 
-#define CNT_1000      1000 // tick counts
-#define CNT_100       100
-
-enum
-{
-	TICK_100MS = 0, // 100ms ticks
-	TICK_1000MS,    // 1000ms ticks
-	N_TIMER_MS
-} Timers_ms;
-
 void initLedBoard(void); // initialize the LED board
 
 uint8_t columnLedBlock;             // column index of 8x10 LED block

@@ -67,10 +67,20 @@ extern SPI_HandleTypeDef hspi1;
 
 #define EVNT_SECOND      0x01
 #define EVNT_UART_RX     0x02
-#define EVNT_100MS       0x04
+#define EVNT_1MS         0x04
 #define EVNT_DATETIME    0x10
 #define EVNT_BLINK       0x20
 #define EVNT_ENABLED     0x80
+
+#define PERIOD_WAIT_LONG    1700 // 3ms * 1700 = 5100 ms
+#define PERIOD_WAIT_SHORT   1000 // 3ms * 1000 = 3000 ms
+
+typedef enum
+{
+	BTN_RELEASED = 0,   // button released
+	BTN_PRESSED,        // button pressed
+	N_BTN_STATES
+} button_t;
 
 /* USER CODE END Private defines */
 

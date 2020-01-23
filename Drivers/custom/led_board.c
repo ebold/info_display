@@ -10,7 +10,7 @@
 #include "led_board.h"
 #include "display.h"
 
-volatile uint32_t cntTicks[N_TIMER_MS];  // tick counters
+volatile uint32_t ticks;                 // tick counter
 volatile uint8_t cntSpiTransfer;         // SPI transfer counter
 
 /**
@@ -20,8 +20,7 @@ void initLedBoard(void)
 {
 	LED_OFF;                            // turn off all LED blocks
 
-	cntTicks[TICK_100MS] = CNT_100;     // reset tick counters
-	cntTicks[TICK_1000MS] = CNT_1000;
+	ticks = 0;                          // reset tick counters
 
 	refreshLedBlocks = FALSE;           // reset LED block refresh flag
 	cntSpiTransfer = 0;                 // reset SPI transfer counter
@@ -33,17 +32,7 @@ void initLedBoard(void)
  */
 void HAL_SYSTICK_Callback(void)
 {
-	cntTicks[TICK_100MS]--;
-	if (!(cntTicks[TICK_100MS])) {
-		cntTicks[TICK_100MS] = CNT_100;
-		event |= EVNT_100MS;        // 100 ms are over
-	}
-
-	cntTicks[TICK_1000MS]--;
-	if (!(cntTicks[TICK_1000MS])) {
-		cntTicks[TICK_1000MS] = CNT_1000;
-		event |= EVNT_SECOND;        // 1 second is over
-	}
+	event |= EVNT_1MS;    // 1 ms is over
 
 	if (refreshLedBlocks) // start non-blocking SPI transfer with interrupt
 	{

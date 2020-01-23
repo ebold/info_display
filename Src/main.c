@@ -49,6 +49,21 @@
 /* USER CODE BEGIN PD */
 #define LEN_HMS      8    // length of HH:MM:SS
 #define ASCII_DIGIT  0x30
+
+#define CNT_1000     1000 // tick counts
+#define CNT_100      100
+#define CNT_10       10
+#define CNT_3        3
+
+typedef enum
+{
+	TICK_3MS = 0,   // 3ms ticks
+	TICK_100MS,     // 100ms ticks
+	TICK_1000MS,    // 1000ms ticks
+	N_TIMER_MS
+} tick_t;
+
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -69,7 +84,10 @@ uint8_t rx_cnt = 0;
 uint8_t text[MAX_CHAR] = "Hello"; // info display buffer
 uint8_t newline[2] = "\n\r";
 
-uint16_t sec_cnt = 0;   // 10-sec counter
+button_t usrBtnB1 = BTN_RELEASED;
+
+uint32_t cntTicks[N_TIMER_MS];       // tick counters
+uint8_t  cntBtnStates[N_BTN_STATES]; // button state counters
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -82,6 +100,7 @@ static void displayDateTime(uint8_t *pText);
 static void blinkChar(uint8_t *pText, uint8_t pos, uint8_t blink);
 static void syncDateTime(struct mydatetime *loc_time, uint8_t *rx_buf);
 static void echoToSender(void);
+static void updateButtonState(button_t *button, GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin);
 /* USER CODE BEGIN PFP */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
 /* USER CODE END PFP */
@@ -129,12 +148,14 @@ int main(void)
 	initDisplay();
 	displayText(DISP_MODE_STATIC, text, 0, MAX_CHAR);
 	refreshLedBlocks = TRUE;	// enable to display data in text[]
-	event |= EVNT_ENABLED | EVNT_DATETIME;
 
 	HAL_UART_Transmit(&huart2, text, sizeof(text), 0xFFFF); // print text[]
 	HAL_UART_Transmit(&huart2, newline, sizeof(newline), 0xFFFF);
 
 	HAL_UART_Receive_IT(&huart2, rx_byte, sizeof(rx_byte));
+
+	HAL_Delay(1000);
+	event |= EVNT_ENABLED | EVNT_DATETIME | EVNT_BLINK;
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
@@ -143,24 +164,26 @@ int main(void)
 	{
 		if (event & EVNT_ENABLED)
 		{
-			if (event & EVNT_SECOND) {
-				event &= ~EVNT_SECOND;
-				++sec_cnt;
-
-				if (sec_cnt == 30) {
-					//do something
-					sec_cnt = 0;
+			if (event & EVNT_1MS) {
+				event &= ~EVNT_1MS;
+				++cntTicks[TICK_3MS];
+				if (cntTicks[TICK_3MS] >= CNT_3) {
+					cntTicks[TICK_3MS] = 0;
+					updateButtonState(&usrBtnB1, GPIOC, GPIO_PIN_13); // read the on-board user button (B1)
+					setTime(usrBtnB1, text);  // set datetime depending on the user button state
 				}
-			}
 
-			if (event & EVNT_100MS) {
-				event &= ~EVNT_100MS;
-				tickDateTime();  // tick local datetime periodically
+				++cntTicks[TICK_100MS];
+				if (cntTicks[TICK_100MS] >= CNT_100) {
+					cntTicks[TICK_100MS] = 0;
+					tickDateTime();  // tick local datetime periodically
+				}
 			}
 
 			if (event & EVNT_BLINK) {
 				event &= ~EVNT_BLINK;
-				blinkChar(text, 2, ':'); // toggle ':' in datetime
+				if (!isSetTimeActive())      // check if setting datetime is in progress
+					blinkChar(text, 2, ':'); // toggle ':' in datetime
 			}
 			else if (event & EVNT_DATETIME) {
 				event &= ~EVNT_DATETIME;
@@ -335,13 +358,13 @@ static void MX_GPIO_Init(void)
 	/*Configure GPIO pin Output Level */
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET);
 
-	/*Configure GPIO pin : PC13 */
+	/*Configure GPIO pin : PC13 - on-board user button */
 	GPIO_InitStruct.Pin = GPIO_PIN_13;
 	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-	/*Configure GPIO pin : PB5 */
+	/*Configure GPIO pin : PB5 - CN9.5 - D4*/
 	GPIO_InitStruct.Pin = GPIO_PIN_5;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -456,6 +479,41 @@ void echoToSender(void)
 {
 	HAL_UART_Transmit(&huart2, rx_byte, sizeof(rx_byte), 0xFFFF);
 	HAL_UART_Transmit(&huart2, newline, sizeof(newline), 0xFFFF);
+}
+
+/**
+ * @brief	Read the on-board user button state
+ * @param	*button	Pointer to button variable
+ * @param	*GPIOx	Pointer to GPIO
+ * @param	GPIO_Pin	GPIO pin
+ * @retval	None
+ */
+void updateButtonState(button_t *button, GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin)
+{
+	GPIO_PinState state = HAL_GPIO_ReadPin(GPIOx, GPIO_Pin);
+
+	if (state == GPIO_PIN_RESET)	// button is pressed
+	{
+		cntBtnStates[BTN_PRESSED]++;
+		cntBtnStates[BTN_RELEASED] = 0;
+		if (cntBtnStates[BTN_PRESSED] >= CNT_10)
+		{
+			cntBtnStates[BTN_PRESSED] = CNT_10;
+			*button = BTN_PRESSED;
+			//HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);
+		}
+	}
+	else	// button is released
+	{
+		cntBtnStates[BTN_RELEASED]++;
+		cntBtnStates[BTN_PRESSED] = 0;
+		if (cntBtnStates[BTN_RELEASED] >= CNT_10)
+		{
+			cntBtnStates[BTN_RELEASED] = CNT_10;
+			*button = BTN_RELEASED;
+			//HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET);
+		}
+	}
 }
 
 #ifdef  USE_FULL_ASSERT
