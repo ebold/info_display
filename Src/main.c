@@ -76,6 +76,7 @@ SPI_HandleTypeDef hspi1;
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
+TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
 volatile uint16_t event = 0;
@@ -96,6 +97,7 @@ static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_TIM4_Init(void);
 static void displayDateTime(uint8_t *pText);
 static void blinkChar(uint8_t *pText, uint8_t pos, uint8_t blink);
 static void syncDateTime(struct mydatetime *loc_time, uint8_t *rx_buf);
@@ -103,6 +105,7 @@ static void echoToSender(void);
 static void updateButtonState(button_t *button, GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin);
 /* USER CODE BEGIN PFP */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -142,6 +145,7 @@ int main(void)
 	MX_SPI1_Init();
 	MX_USART1_UART_Init();
 	MX_USART2_UART_Init();
+	MX_TIM4_Init();
 	/* USER CODE BEGIN 2 */
 
 	initLedBoard();
@@ -153,6 +157,9 @@ int main(void)
 	HAL_UART_Transmit(&huart2, newline, sizeof(newline), 0xFFFF);
 
 	HAL_UART_Receive_IT(&huart2, rx_byte, sizeof(rx_byte));
+
+	HAL_TIM_GenerateEvent(&htim4, TIM_EVENTSOURCE_UPDATE); // generate software event
+	HAL_TIM_Base_Start_IT(&htim4);    // start timer4 with interrupt
 
 	HAL_Delay(1000);
 	event |= EVNT_ENABLED | EVNT_DATETIME | EVNT_BLINK;
@@ -171,12 +178,6 @@ int main(void)
 					cntTicks[TICK_3MS] = 0;
 					updateButtonState(&usrBtnB1, GPIOC, GPIO_PIN_13); // read the on-board user button (B1)
 					setTime(usrBtnB1, text);  // set datetime depending on the user button state
-				}
-
-				++cntTicks[TICK_100MS];
-				if (cntTicks[TICK_100MS] >= CNT_100) {
-					cntTicks[TICK_100MS] = 0;
-					tickDateTime();  // tick local datetime periodically
 				}
 			}
 
@@ -380,6 +381,51 @@ static void MX_GPIO_Init(void)
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 }
 
+/**
+  * @brief TIM4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM4_Init(void)
+{
+
+  /* USER CODE BEGIN TIM4_Init 0 */
+
+  /* USER CODE END TIM4_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM4_Init 1 */
+  // Timer 4 is used to tick the local datetime (10Hz event)
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = 799; // prescaler = (f_clk/f_timer_tick)-1, f_clk = 8MHz, f_timer_tick = 10KHz
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 999;   // period = (f_timer_tick/f_timer)-1, f_timer_tick = 10KHz, f_timer = 10Hz
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM4_Init 2 */
+
+  /* USER CODE END TIM4_Init 2 */
+
+}
+
 /* USER CODE BEGIN 4 */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
@@ -388,6 +434,19 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		event |= EVNT_UART_RX;
 	}
 }
+
+/**
+ * @brief	Period elapsed callback (timer interrupt handler)
+ * @param	htim	Pointer to TIM handle
+ * @retval	None
+ */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if (htim->Instance == TIM4) {
+		tickDateTime();  // tick the local datetime
+	}
+}
+
 /* USER CODE END 4 */
 
 /**
