@@ -141,7 +141,6 @@ int main(void)
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-		/* USER CODE END WHILE */
 		if (event & EVNT_ENABLED)
 		{
 			if (event & EVNT_SECOND) {
@@ -175,6 +174,7 @@ int main(void)
 				echoToSender(); // send the received data back to sender
 			}
 		}
+		/* USER CODE END WHILE */
 		/* USER CODE BEGIN 3 */
 	}
 	/* USER CODE END 3 */
