@@ -76,6 +76,7 @@ SPI_HandleTypeDef hspi1;
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
+TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
@@ -97,6 +98,7 @@ static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
 static void displayDateTime(uint8_t *pText);
 static void blinkChar(uint8_t *pText, uint8_t pos, uint8_t blink);
@@ -145,6 +147,7 @@ int main(void)
 	MX_SPI1_Init();
 	MX_USART1_UART_Init();
 	MX_USART2_UART_Init();
+	MX_TIM3_Init();
 	MX_TIM4_Init();
 	/* USER CODE BEGIN 2 */
 
@@ -158,6 +161,8 @@ int main(void)
 
 	HAL_UART_Receive_IT(&huart2, rx_byte, sizeof(rx_byte));
 
+	HAL_TIM_GenerateEvent(&htim3, TIM_EVENTSOURCE_UPDATE); // generate software event
+	// timer 3 is controlled by the dimmer flag
 	HAL_TIM_GenerateEvent(&htim4, TIM_EVENTSOURCE_UPDATE); // generate software event
 	HAL_TIM_Base_Start_IT(&htim4);    // start timer4 with interrupt
 
@@ -382,6 +387,42 @@ static void MX_GPIO_Init(void)
 }
 
 /**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+  /* USER CODE BEGIN */
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  // Timer 3 is used to dim the LED module (2KHz event)
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 79; // prescaler = (f_clk/f_timer_tick)-1, f_clk = 8MHz, f_timer_tick = 100KHz
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 49;   // period = (f_timer_tick/f_timer)-1, f_timer_tick = 100KHz, f_timer = 2KHz
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE END */
+}
+
+/**
   * @brief TIM4 Initialization Function
   * @param None
   * @retval None
@@ -442,6 +483,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
  */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
+	if (htim->Instance == TIM3) {
+		HAL_TIM_Base_Stop_IT(&htim3);    // stop timer 3
+		LED_ON;		              // turn on all LED blocks
+		refreshLedBlocks = TRUE;  // ready for next refresh
+	}
 	if (htim->Instance == TIM4) {
 		tickDateTime();  // tick the local datetime
 	}

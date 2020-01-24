@@ -9,8 +9,9 @@
 #define DATETIME_H_
 
 /* dimmer state */
-#define DIMMER_ON	0x80 // dimmer is enabled
-#define DIMMER_OFF	0x00 // dimmer is disabled
+#define DIMMER_ON	0x80 // dimmer activated
+#define DIMMER_OFF	0x00 // dimmer deactivated
+
 struct mydatetime {
 	uint8_t msecond; // 1/10 second
 	uint8_t second;  // second (0..59)
@@ -18,6 +19,7 @@ struct mydatetime {
 	uint8_t hour;    // hour (0..23)
 };
 extern struct mydatetime s_mydatetime;
+extern uint8_t dimmer; // dimmer flag
 
 void setTime(uint8_t button, uint8_t *buf); // set/adjust datetime
 uint8_t isSetTimeActive();  // check if setting datetime in progress

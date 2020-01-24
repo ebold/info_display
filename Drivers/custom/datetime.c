@@ -16,8 +16,12 @@
 #define DATETIME_HOUR      60 // 1 s_mydatetime.hour
 #define DATETIME_DAY       24 // 1 day
 
-struct mydatetime s_mydatetime;
+/* time period for dimmer activation */
+#define DATETIME_DIMMER_START	21 // activate dimmer at 21:00
+#define DATETIME_DIMMER_END     6  // deactivate dimmer at 6:00
 
+uint8_t dimmer = DIMMER_OFF; // dimmer deactivated
+struct mydatetime s_mydatetime;
 uint32_t stateTimeout = 0;   // timeout counter used by FSM to set datetime
 
 // states of FSM to set datetime
@@ -30,6 +34,19 @@ uint32_t stateTimeout = 0;   // timeout counter used by FSM to set datetime
 uint8_t curSetState = DATETIME_SET_IDLE;
 uint8_t nextSetState = DATETIME_SET_IDLE;
 button_t btnPrvState = BTN_RELEASED;
+
+/* Update the dimmer flag */
+void updateDimmer(void)
+{
+	if ((DATETIME_DIMMER_START <= s_mydatetime.hour) || (s_mydatetime.hour <= DATETIME_DIMMER_END))
+	{
+		dimmer = DIMMER_ON;
+	}
+	else
+	{
+		dimmer = DIMMER_OFF;
+	}
+}
 /* Tick datetime
  * Must be called in period of 100ms */
 void tickDateTime(void)
@@ -56,6 +73,7 @@ void tickDateTime(void)
 				{
 					s_mydatetime.hour = 0;
 				}
+				updateDimmer();
 			}
 		}
 		event |= EVNT_BLINK;
@@ -92,6 +110,7 @@ void adjustHour(void)
 	{
 		s_mydatetime.hour = 0;
 	}
+	updateDimmer();
 	event |= EVNT_DATETIME;
 }
 

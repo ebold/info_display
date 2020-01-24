@@ -9,6 +9,7 @@
 #include "main.h"
 #include "led_board.h"
 #include "display.h"
+#include "datetime.h"
 
 volatile uint32_t ticks;                 // tick counter
 volatile uint8_t cntSpiTransfer;         // SPI transfer counter
@@ -74,8 +75,22 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 			columnLedBlock = 0;
 
 		LOAD_BYTE;	// load transmitted bytes to external latches
-		LED_ON;		// turn on all LED blocks
 
-		refreshLedBlocks = TRUE;  // ready for next refresh
+		if (dimmer)
+		{
+			/**
+			 * The hardware timer 3 is configured to generate 2KHz software event (period
+			 * elapsed). After sending the pattern bytes to the LED board, the LED blocks
+			 * are not turned on directly if the dimmer flag is activated. Instead timer 3
+			 * is started. Once the timer 3 fires the period elapsed interrupt, the timer
+			 * operation is stopped, and the LED blocks are turned on.
+			 */
+			HAL_TIM_Base_Start_IT(&htim3);    // start timer 3 with interrupt
+		}
+		else
+		{
+			LED_ON;		// turn on all LED blocks
+			refreshLedBlocks = TRUE;  // ready for next refresh
+		}
 	}
 }

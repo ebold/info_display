@@ -61,6 +61,7 @@ void Error_Handler(void);
 /* USER CODE BEGIN Private defines */
 extern volatile uint16_t event;
 extern SPI_HandleTypeDef hspi1;
+extern TIM_HandleTypeDef htim3;
 
 #define TRUE	1
 #define FALSE	0
