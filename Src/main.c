@@ -178,12 +178,13 @@ int main(void)
 		{
 			if (event & EVNT_1MS) {
 				event &= ~EVNT_1MS;
+				/* PC13 might be defect, do not read user B1 button
 				++cntTicks[TICK_3MS];
 				if (cntTicks[TICK_3MS] >= CNT_3) {
 					cntTicks[TICK_3MS] = 0;
 					updateButtonState(&usrBtnB1, GPIOC, GPIO_PIN_13); // read the on-board user button (B1)
 					setTime(usrBtnB1, text);  // set datetime depending on the user button state
-				}
+				}*/
 			}
 
 			if (event & EVNT_BLINK) {
