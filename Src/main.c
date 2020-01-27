@@ -78,7 +78,7 @@ UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
-
+RTC_HandleTypeDef hrtc;
 /* USER CODE BEGIN PV */
 volatile uint16_t event = 0;
 uint8_t rx_byte[LEN_HMS]; // received byte buffer
@@ -90,6 +90,13 @@ button_t usrBtnB1 = BTN_RELEASED;
 
 uint32_t cntTicks[N_TIMER_MS];       // tick counters
 uint8_t  cntBtnStates[N_BTN_STATES]; // button state counters
+
+struct s_displayedTime
+{
+	uint8_t Hours;
+	uint8_t Minutes;
+} displayedTime = {0};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -100,7 +107,10 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
-static void displayDateTime(uint8_t *pText);
+static void MX_RTC_Init(void);
+static void displayRTCDateTime(RTC_HandleTypeDef *hrtc, uint8_t* pText);
+static void syncRTCTime(RTC_HandleTypeDef *hrtc, uint8_t* rx_buf);
+static void displayDateTime(uint8_t *pText, uint8_t hours, uint8_t minutes);
 static void blinkChar(uint8_t *pText, uint8_t pos, uint8_t blink);
 static void syncDateTime(struct mydatetime *loc_time, uint8_t *rx_buf);
 static void echoToSender(void);
@@ -108,6 +118,7 @@ static void updateButtonState(button_t *button, GPIO_TypeDef *GPIOx, uint16_t GP
 /* USER CODE BEGIN PFP */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
+void HAL_RTCEx_RTCEventCallback(RTC_HandleTypeDef *hrtc);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -149,6 +160,7 @@ int main(void)
 	MX_USART2_UART_Init();
 	MX_TIM3_Init();
 	MX_TIM4_Init();
+	MX_RTC_Init();
 	/* USER CODE BEGIN 2 */
 
 	initLedBoard();
@@ -167,7 +179,7 @@ int main(void)
 	HAL_TIM_Base_Start_IT(&htim4);    // start timer4 with interrupt
 
 	HAL_Delay(1000);
-	event |= EVNT_ENABLED | EVNT_DATETIME | EVNT_BLINK;
+	event |= EVNT_ENABLED | EVNT_DATETIME;
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
@@ -194,12 +206,12 @@ int main(void)
 			}
 			else if (event & EVNT_DATETIME) {
 				event &= ~EVNT_DATETIME;
-				displayDateTime(text);  // display datetime
+				displayRTCDateTime(&hrtc, text);  // display RTC time
 			}
 			else if (event & EVNT_UART_RX)
 			{
 				event &= ~EVNT_UART_RX;
-				syncDateTime(&s_mydatetime, rx_byte); // synchronize local datetime
+				syncRTCTime(&hrtc, rx_byte);
 
 				echoToSender(); // send the received data back to sender
 			}
@@ -218,14 +230,22 @@ void SystemClock_Config(void)
 {
 	RCC_OscInitTypeDef RCC_OscInitStruct = {0};
 	RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+	RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
 	/** Initializes the CPU, AHB and APB busses clocks
 	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSE;
+	RCC_OscInitStruct.LSEState = RCC_LSE_ON;
 	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
 	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
 	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
 	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC;
+	PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
+	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
 	{
 		Error_Handler();
 	}
@@ -242,6 +262,64 @@ void SystemClock_Config(void)
 	{
 		Error_Handler();
 	}
+}
+
+/**
+  * @brief RTC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_RTC_Init(void)
+{
+
+  /* USER CODE BEGIN RTC_Init 0 */
+
+  /* USER CODE END RTC_Init 0 */
+
+  RTC_TimeTypeDef sTime = {0};
+  RTC_DateTypeDef DateToUpdate = {0};
+
+  /* USER CODE BEGIN RTC_Init 1 */
+
+  /* USER CODE END RTC_Init 1 */
+  /** Initialize RTC Only
+  */
+  hrtc.Instance = RTC;
+  hrtc.Init.AsynchPrediv = RTC_AUTO_1_SECOND;
+  hrtc.Init.OutPut = RTC_OUTPUTSOURCE_SECOND;
+  if (HAL_RTC_Init(&hrtc) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /* USER CODE BEGIN Check_RTC_BKUP */
+
+  /* USER CODE END Check_RTC_BKUP */
+
+  /** Initialize RTC and set the Time and Date
+  */
+  sTime.Hours = 0x0;
+  sTime.Minutes = 0x0;
+  sTime.Seconds = 0x0;
+
+  if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* January 26, Sunday, 2020 */
+  DateToUpdate.WeekDay = RTC_WEEKDAY_SUNDAY;
+  DateToUpdate.Month = RTC_MONTH_JANUARY;
+  DateToUpdate.Date = 0x26;
+  DateToUpdate.Year = 0x20;
+
+  if (HAL_RTC_SetDate(&hrtc, &DateToUpdate, RTC_FORMAT_BIN) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN RTC_Init 2 */
+
+  /* USER CODE END RTC_Init 2 */
+
 }
 
 /**
@@ -358,6 +436,7 @@ static void MX_GPIO_Init(void)
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 
 	/* GPIO Ports Clock Enable */
+	__HAL_RCC_GPIOC_CLK_ENABLE();
 	__HAL_RCC_GPIOC_CLK_ENABLE();
 	__HAL_RCC_GPIOA_CLK_ENABLE();
 	__HAL_RCC_GPIOB_CLK_ENABLE();
@@ -494,6 +573,82 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	}
 }
 
+/**
+ * @brief	Set the RTC time
+ * @param	hrtc	RTC handle variable
+ * @param	rx_buf	RX buffer for received byte from UART
+ * @retval	None
+ */
+void syncRTCTime(RTC_HandleTypeDef *hrtc, uint8_t* rx_buf)
+{
+	RTC_TimeTypeDef sTime = {0};
+
+	uint8_t digit_10 = *(rx_buf);
+	digit_10 &= ~ASCII_DIGIT;
+	uint8_t digit_1 = *(rx_buf + 1);
+	digit_1 &= ~ASCII_DIGIT;
+	sTime.Hours = digit_10 * 10 + digit_1;
+	digit_10 = *(rx_buf + 3);
+	digit_10 &= ~ASCII_DIGIT;
+	digit_1 = *(rx_buf + 4);
+	digit_1 &= ~ASCII_DIGIT;
+	sTime.Minutes = digit_10 * 10 + digit_1;
+	digit_10 = *(rx_buf + 6);
+	digit_10 &= ~ASCII_DIGIT;
+	digit_1 = *(rx_buf + 7);
+	digit_1 &= ~ASCII_DIGIT;
+	sTime.Seconds = digit_10 * 10 + digit_1;
+
+	if (HAL_RTC_SetTime(hrtc, &sTime, RTC_FORMAT_BIN) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	else
+	{
+		event |= EVNT_DATETIME;
+	}
+}
+
+/**
+  * @brief  Second event callback.
+  * @param  hrtc: pointer to a RTC_HandleTypeDef structure that contains
+  *                the configuration information for RTC.
+  * @retval None
+  */
+void HAL_RTCEx_RTCEventCallback(RTC_HandleTypeDef *hrtc)
+{
+  if (hrtc->Instance == RTC)
+  {
+	  // check if minutes are changed
+	  RTC_TimeTypeDef sTime;
+
+	  /* Get the RTC current Time */
+	  HAL_RTC_GetTime(hrtc, &sTime, RTC_FORMAT_BIN);
+
+	  if ((sTime.Minutes != displayedTime.Minutes) ||
+			  (sTime.Hours != displayedTime.Hours))
+	  {
+		  event |= EVNT_DATETIME;
+		  displayedTime.Minutes = sTime.Minutes;
+		  displayedTime.Hours = sTime.Hours;
+	  }
+	  //TODO: event |= EVNT_BLINK;
+  }
+}
+/**
+  * @brief  Display the current time.
+  * @param	hrtc	RTC handle variable
+  * @param  pText 	Display buffer
+  * @retval None
+  */
+static void displayRTCDateTime(RTC_HandleTypeDef *hrtc, uint8_t* pText)
+{
+  RTC_TimeTypeDef sTime;
+  HAL_RTC_GetTime(hrtc, &sTime, RTC_FORMAT_BIN);  // get the RTC current time
+  displayDateTime(pText, sTime.Hours, sTime.Minutes);
+}
+
+
 /* USER CODE END 4 */
 
 /**
@@ -535,25 +690,29 @@ void syncDateTime(struct mydatetime *loc_time, uint8_t *rx_buf)
 
 /**
  * @breif	Write datetime value to a dedicated display buffer
+ * @param	pText	Display buffer
+ * @param	hours	Hours
+ * @param	minutes	Minutes
+ * @retval	None
  */
-void displayDateTime(uint8_t *pText)
+void displayDateTime(uint8_t *pText, uint8_t hours, uint8_t minutes)
 {
-	uint8_t i = s_mydatetime.hour / 10;
+	uint8_t i = hours / 10;
 	if (i)
 		*pText = i | ASCII_DIGIT;
 	else
 		*pText = ' ';
 
-	*(pText + 1) = (s_mydatetime.hour % 10) | ASCII_DIGIT;
-	i = s_mydatetime.minute / 10;
+	*(pText + 1) = (hours % 10) | ASCII_DIGIT;
+	i = minutes / 10;
 	if (i)
 	{
 		*(pText + 3) = i | ASCII_DIGIT;
-		*(pText + 4) = (s_mydatetime.minute % 10) | ASCII_DIGIT;
+		*(pText + 4) = (minutes % 10) | ASCII_DIGIT;
 	}
 	else
 	{
-		*(pText + 3) = (s_mydatetime.minute % 10) | ASCII_DIGIT;
+		*(pText + 3) = (minutes % 10) | ASCII_DIGIT;
 		*(pText + 4) = ' ';
 	}
 	displayText(DISP_MODE_STATIC, pText, 0, 5);
