@@ -51,6 +51,7 @@
 #define ASCII_DIGIT  0x30
 
 #define CNT_1000     1000 // tick counts
+#define CNT_500      500
 #define CNT_100      100
 #define CNT_10       10
 #define CNT_3        3
@@ -59,6 +60,7 @@ typedef enum
 {
 	TICK_3MS = 0,   // 3ms ticks
 	TICK_100MS,     // 100ms ticks
+	TICK_500MS,     // 500ms ticks
 	TICK_1000MS,    // 1000ms ticks
 	N_TIMER_MS
 } tick_t;
@@ -90,6 +92,7 @@ button_t usrBtnB1 = BTN_RELEASED;
 
 uint32_t cntTicks[N_TIMER_MS];       // tick counters
 uint8_t  cntBtnStates[N_BTN_STATES]; // button state counters
+uint8_t  blinkStatus = FALSE;        // bi-state blinking status (ON=TRUE, OFF=FALSE)
 
 struct s_displayedTime
 {
@@ -190,6 +193,15 @@ int main(void)
 		{
 			if (event & EVNT_1MS) {
 				event &= ~EVNT_1MS;
+				++cntTicks[TICK_500MS];
+				if (cntTicks[TICK_500MS] >= CNT_500) {
+					cntTicks[TICK_500MS] = 0;
+					if (blinkStatus) // check the blinking status
+					{
+						event |= EVNT_BLINK;  // set the event flag
+						blinkStatus = FALSE;  // set the blinking status to OFF
+					}
+				}
 				/* PC13 might be defect, do not read user B1 button
 				++cntTicks[TICK_3MS];
 				if (cntTicks[TICK_3MS] >= CNT_3) {
@@ -632,7 +644,8 @@ void HAL_RTCEx_RTCEventCallback(RTC_HandleTypeDef *hrtc)
 		  displayedTime.Minutes = sTime.Minutes;
 		  displayedTime.Hours = sTime.Hours;
 	  }
-	  //TODO: event |= EVNT_BLINK;
+	  event |= EVNT_BLINK;  // set the event flag
+	  blinkStatus = TRUE;   // set the blinking status to ON
   }
 }
 /**
