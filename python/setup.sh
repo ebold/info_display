@@ -41,4 +41,8 @@ cp $user_shell_script $user_python_script $user_script_dir
 echo "Copied $user_shell_script $user_python_script into $user_script_dir"
 
 echo "Ready to communication with the Nucleo board!"
-echo "Please reboot to apply system changes"
+
+udevadm control --reload-rules
+echo "udev rules were reloaded."
+echo "Please verify that if STLink can be detected by st-util."
+echo "Otherwise, please reboot to apply system changes!"
