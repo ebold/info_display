@@ -5,13 +5,18 @@
 
 # Usage: copy this file into '/etc/systemd/system/' directory.
 
+# Options 'StartLimitIntervalSec', 'Restart', and 'RestartSec' are
+# used to restart the service on exit or whatever. 
+
 [Unit]
 Description=Serial communication with the STM32 Nucleo/STLink via USB
 ConditionPathExists=/dev/ttyACM0
-
+StartLimitIntervalSec=0
 
 [Service]
 ExecStart=/usr/local/bin/serialcomm_nucleo.sh
+Restart=always
+RestartSec=5
 
 [Install]
 #WantedBy=multi-user.target
