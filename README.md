@@ -12,8 +12,8 @@
 - STM32CubeMX, [link](http://www.st.com/stm32cubemx)
 
 ### Target system:
-- STM32 Nucleo-F103RB (https://www.st.com/en/evaluation-tools/nucleo-f103rb.html)
-- TI Beaglebone Black with Arch Linux ARMv7 AM33x BeagleBone (https://archlinuxarm.org/about/downloads)
+- STM32 Nucleo-F103RB, [link](https://www.st.com/en/evaluation-tools/nucleo-f103rb.html)
+- TI Beaglebone Black with Arch Linux ARMv7 AM33x BeagleBone, [image](https://archlinuxarm.org/about/downloads)
 
 ## Installations
 
