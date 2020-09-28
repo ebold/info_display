@@ -39,3 +39,21 @@ tar -xvf gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2 -C ~/
 ```
 export PATH=$PATH:~/gcc-arm-none-eabi-9-2020-q2-update/bin
 ```
+
+### 2. STM32 ST-LINK/V2-1 utility
+
+  2.1. Download an external Debian package into your desired directory
+
+```
+wget -c https://github.com/stlink-org/stlink/releases/download/v1.6.1/stlink-1.6.1-1_amd64.deb
+```
+
+  2.2. Install the downloaded package
+
+```
+sudo apt install ./stlink-1.6.1-1_amd64.deb
+
+```
+
+  2.3. ([Optional](https://github.com/stlink-org/stlink/blob/develop/doc/tutorial.md)) Verify if udev rules are set properly
+
