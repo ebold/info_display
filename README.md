@@ -86,3 +86,26 @@ The installer contains the ST-LINK/V2 driver and ST-LINK server, if these compon
 ```
 sudo apt install libc6:i386 lib32ncurses5
 ```
+
+### 4. STM32CubeMX
+
+*Requirements:*
+- The Java RE minimal version is 1.8_45. The version 1.8_251 must not be used (known Java issue).
+- User registration
+
+  4.1. Download the installation package (eg, en.stm32cubemx_v6-0-1.zip)
+
+  4.2. Extract the downloaded package into an installation directory
+
+```
+mkdir -p /tmp/stm32cubemx
+unzip en.stm32cubemx_v6-0-1.zip -d /tmp/stm32cubemx/
+```
+
+  4.3. Launch an installer and follow the installation steps
+
+```
+cd /tmp/stm32cubemx
+chmod a+x SetupSTM32CubeMX-6.0.1.linux
+./SetupSTM32CubeMX-6.0.1.linux
+```
