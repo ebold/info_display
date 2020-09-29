@@ -4,6 +4,7 @@
 
 ### Development host:
 - Linux Mint 18.3 (Cinnamon 64-bit)
+- OpenJDK RE version 1.8.0_265 (build 1.8.0_265-8u265-b01-0ubuntu2~16.04-b01)
 
 ### Development tools:
 - GNU Arm Embedded Toolchain, Version 9-2020-q2-update [Linux x86_64 Tarball](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads)
