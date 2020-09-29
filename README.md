@@ -9,7 +9,7 @@
 ### Development tools:
 - GNU Arm Embedded Toolchain, Version 9-2020-q2-update [Linux x86_64 Tarball](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads)
 - STM32 ST-LINK utility v1.6.1, [link](https://github.com/stlink-org/stlink)
-- System Workbench for STM32, [link](https://www.ac6-tools.com)
+- System Workbench for STM32, [link](https://www.openstm32.org)
 - STM32CubeMX, [link](http://www.st.com/stm32cubemx)
 
 ### Target system:
@@ -58,3 +58,31 @@ sudo apt install ./stlink-1.6.1-1_amd64.deb
 
   2.3. ([Optional](https://github.com/stlink-org/stlink/blob/develop/doc/tutorial.md)) Verify if udev rules are set properly
 
+### 3. System Workbench for STM32
+
+*Requirements:*
+- Java RE (7 or upper version) and gksudo must be installed.
+- User registration
+
+  3.1. Download an installer for the 64-bit Linux and MD5 sum of the installer (might require registration)
+
+```
+wget -c http://www.ac6-tools.com/downloads/SW4STM32/install_sw4stm32_linux_64bits-v2.9.run --no-check-certificate
+wget -c http://www.ac6-tools.com/downloads/SW4STM32/install_sw4stm32_linux_64bits-v2.9.run.md5 --no-check-certificate
+md5sum -c install_sw4stm32_linux_64bits-v2.9.run.md5
+```
+
+  3.2. Launch the installer and follow the installation steps
+
+```
+chmod a+x install_sw4stm32_linux_64bits-v2.9.run
+./install_sw4stm32_linux_64bits-v2.9.run
+```
+
+The installer contains the ST-LINK/V2 driver and ST-LINK server, if these components are already installed, it will check them.
+
+  3.3. Install 32-bit version of the C shared libraries
+
+```
+sudo apt install libc6:i386 lib32ncurses5
+```
