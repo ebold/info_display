@@ -123,7 +123,13 @@ chmod a+x SetupSTM32CubeMX-6.0.1.linux
 - Ensure the option “Copy projects into workspace” is **unchecked**
 - Click on the "Finish" button.
 
-  1.2. Import 'Solarized Dark' theme [2]
+  1.2. Change the Eclipse default theme to 'Dark'
+
+- Window >> Preference
+- Choose "Appearance" from the "General" group
+- Select "Dark" from "Theme:" and click on the "OK" button.
+
+  1.3. Import 'Solarized Dark' theme [2]
 
 - File >> Import >> General >> Preference
 - Press "Next" and then browse for the .epf file.
