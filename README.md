@@ -135,6 +135,13 @@ chmod a+x SetupSTM32CubeMX-6.0.1.linux
 - Press "Next" and then browse for the .epf file.
 - Check the "Import all" box and click on the "Finish" button.
 
+  1.4. Revert to the Eclipse default settings
+
+```
+rm -r $WORKSPACE_DIR/.metadata/.plugins/org.eclipse.core.runtime/.settings/
+
+```
+
 [1] Importing a STM32CubeMX project into SW4STM32, [link](https://www.openstm32.org/Importing%2Ba%2BSTCubeMX%2Bgenerated%2Bproject)
 
 [2] Eclipse Preferences [EPF](http://www.eclipsecolorthemes.org/?view=theme&id=1115) - for Eclipse Import
