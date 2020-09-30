@@ -109,3 +109,18 @@ cd /tmp/stm32cubemx
 chmod a+x SetupSTM32CubeMX-6.0.1.linux
 ./SetupSTM32CubeMX-6.0.1.linux
 ```
+
+## How-to
+
+### 1. System Workbench for STM32
+
+  1.1. Import an existing project (info_display) [1]
+
+- File >> Import...
+- Choose "Existing Projects into Workspace" from the "General" group
+- Click on “Browse” for the root directory. It should select your workspace by default, if not, enter the workspace location.
+- The projects list is refreshed and should display your project (info_display), select it.
+- Ensure the option “Copy projects into workspace” is **unchecked**
+- Click on the "Finish" button.
+
+[1] Importing a STM32CubeMX project into SW4STM32, [link](https://www.openstm32.org/Importing%2Ba%2BSTCubeMX%2Bgenerated%2Bproject)
