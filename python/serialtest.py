@@ -16,7 +16,7 @@ BAUDRATE = 115200        # default baudrate
 DELAY = 3                # default polling interval
 DELAY_MS = 0.001         # 1ms delay
 FORMAT = '%H:%M'         # time format in use
-VERBOSE = False          # verbose flag (set to True to get output message)
+VERBOSE = True          # verbose flag (set to True to get output message)
 DEBUG = False            # debug flag (set to True when serial device is not available)
 
 # Return seconds remaining to next full minute
