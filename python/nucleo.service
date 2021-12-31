@@ -12,6 +12,7 @@
 Description=Serial communication with the STM32 Nucleo/STLink via USB
 ConditionPathExists=/dev/ttyACM0
 StartLimitIntervalSec=0
+After=network.target systemd-timesyncd.service
 
 [Service]
 ExecStart=/usr/local/bin/serialcomm_nucleo.sh
@@ -19,4 +20,4 @@ Restart=always
 RestartSec=5
 
 [Install]
-#WantedBy=multi-user.target
+WantedBy=multi-user.target
