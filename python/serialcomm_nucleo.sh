@@ -42,12 +42,32 @@ unlock() {
 # lock a file
 lock
 
+# get CPU model
+cpu_model=$(cat /proc/device-tree/model)
+
+# cpu_model can have:
+# TI AM335x BeagleBone Black
+# Raspberry Pi Model B Rev 2
+
+# get OS
+os_pretty_name=$(grep PRETTY_NAME /etc/os-release)
+
+# os_pretty_name can have:
+# PRETTY_NAME="Arch Linux ARM"
+# PRETTY_NAME="Raspbian GNU/Linux 10 (buster)"
+
 # turn off all LEDs (it's enough to set trigger mode to none)
 # range in {0..3} is supported in bash v3.0+ (echo $BASH_VERSION)
 # in older versions of bash use seq command (ie., $(seq 0 3) instead of {0..3}
-for i in {0..3}; do
-  led_trigger_ctl $i "none"
-done
+
+if [[ "${cpu_model,,}" =~ "beaglebone" ]]; then
+  if [[ "${os_pretty_name,,}" =~ "arch" ]]; then
+    # if cpu_model is 'beaglebone' and OS is 'archlinux', then turn off LEDs
+    for i in {0..3}; do
+      led_trigger_ctl $i "none"
+    done
+  fi
+fi
 
 # start the user python script
 python2 $user_python_script
