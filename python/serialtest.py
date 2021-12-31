@@ -2,6 +2,8 @@
 
 # Send/print the current system time in given format when next minute fires.
 
+# Run: $ sudo python serialtest.py
+
 # The UART transmission of datetime string to Nucleo is done with ms-delay
 # between each byte in the string to overcome VCP issue in Stlink. [1][2]
 # [1] https://community.st.com/s/question/0D50X00009XkhUU/stlink-vcp-with-flow-control
