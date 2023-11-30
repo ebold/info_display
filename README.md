@@ -1,4 +1,11 @@
-# info_display
+# Info display
+
+This project is targeted to a custom embedded system, which is used to display short information (like date, time, outside temperature etc). Basic building blocks are:
+- LED matrix display: 6 pieces of 5x8 matrix
+- display controller: STM32 Nucleo-F103RB
+- host computer: Raspberry Pi or Beaglebone
+
+At the moment it displays the actual time, which is synchronized to the system time of the host computer.
 
 ## Project setup
 
@@ -12,7 +19,7 @@
 - System Workbench for STM32, [link](https://www.openstm32.org)
 - STM32CubeMX, [link](http://www.st.com/stm32cubemx)
 
-### Target system:
+### Target boards:
 - STM32 Nucleo-F103RB, [link](https://www.st.com/en/evaluation-tools/nucleo-f103rb.html)
 - TI Beaglebone Black with Arch Linux ARMv7 AM33x BeagleBone, [image](https://archlinuxarm.org/about/downloads)
 
