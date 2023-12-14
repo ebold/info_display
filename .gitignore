@@ -1,1 +1,8 @@
+# settings
+.settings/
+
+# metadata
+.metadata/
+
+# build output
 /Debug/
